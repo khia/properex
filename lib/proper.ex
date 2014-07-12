@@ -21,7 +21,7 @@ defmodule Proper.Properties do
 end
 
 defmodule Proper.Result do
-  use GenServer.Behaviour
+  use GenServer
 
   defrecord State, tests: [], errors: [], current: nil
 
@@ -178,7 +178,7 @@ defmodule Proper do
        {tests, errors}
     end
 
-    def produce(gen, seed // :undefined) do
+    def produce(gen, seed \\ :undefined) do
       :proper_gen.pick(gen, 10, fork_seed(seed))
     end
 
