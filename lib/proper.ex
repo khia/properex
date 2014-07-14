@@ -22,8 +22,9 @@ end
 
 defmodule Proper.Result do
   use GenServer
+  require Record
 
-  defrecord State, tests: [], errors: [], current: nil
+  Record.defrecordp :state, tests: [], errors: [], current: nil
 
   def start_link do
     :gen_server.start_link({ :local, __MODULE__ }, __MODULE__, [], [])
@@ -44,28 +45,27 @@ defmodule Proper.Result do
   end
 
  def init(_args) do
-    { :ok, State.new }
+    { :ok, state() }
   end
 
-  def handle_call({:message, fmt, args}, _from, state) do
+  def handle_call({:message, fmt, args}, _from, state(current: current, tests: tests, errors: errors) = s) do
     if :lists.prefix('Error', fmt) do
-       state = state.errors([{state.current, {fmt, args}}|state.errors])
+       s = state(s, errors: [{current, {fmt, args}}|errors])
     end
     if :lists.prefix('Failed', fmt) do
-       state = state.errors([{state.current, {fmt, args}}|state.errors])
+       s = state(s, errors: [{current, {fmt, args}}|errors])
     end
     if :lists.prefix('Testing', fmt) do
-       state = state.tests([args|state.tests])
-       state = state.current(args)
+       s = state(s, tests: [args|tests], current: args)
     end
-    { :reply, :ok, state }
+    { :reply, :ok, s }
   end
 
-  def handle_call(:status, _from, state) do
-    { :reply, {state.tests, state.errors} , state }
+  def handle_call(:status, _from, state(tests: tests, errors: errors) = s) do
+    { :reply, {tests, errors} , s }
   end
-  def handle_call(:stop, _from, state) do
-    { :stop, :normal, :ok, state }
+  def handle_call(:stop, _from, s) do
+    { :stop, :normal, :ok, s }
   end
   def terminate(:normal, _state), do: :ok
 end
